@@ -1,4 +1,4 @@
-package com.example.eddie.card.MyAdapter;
+package com.example.eddie.card.PoJo;
 
 import com.example.eddie.card.PoJo.UnitNumber;
 

@@ -1,6 +1,9 @@
 package com.example.eddie.card.MyAdapter;
 
 import android.content.Context;
+import android.os.Bundle;
+import android.os.Handler;
+import android.os.Message;
 import android.support.annotation.LayoutRes;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
@@ -13,6 +16,7 @@ import android.widget.ArrayAdapter;
 import android.widget.TextView;
 
 import com.example.eddie.card.PoJo.Title;
+import com.example.eddie.card.PoJo.UnitList;
 import com.example.eddie.card.PoJo.UnitNumber;
 import com.example.eddie.card.R;
 
@@ -25,14 +29,16 @@ public class UnitAdapter extends ArrayAdapter {
     private Context context;
     private int resource;
     private List<Object> list;
+    private Handler handler;
     private Class[] MyClass;
 
-    public UnitAdapter(@NonNull Context context, @LayoutRes int resource, @NonNull List<Object> objects) {
+    public UnitAdapter(@NonNull Context context, @LayoutRes int resource, @NonNull List<Object> objects, Handler handler) {
         super(context, resource, objects);
 
         this.context = context;
         this.resource = resource;
         this.list = objects;
+        this.handler = handler;
 
         MyClass = new Class[]{Title.class, UnitList.class};
     }
@@ -103,7 +109,23 @@ public class UnitAdapter extends ArrayAdapter {
         List<UnitNumber> info = unitInfo.getUnitNumber();
 
         UnitNumber nu =  info.get(0);
+
+
+
         if (nu!=null) {
+            if (!nu.getNumber().equals("")) {
+                final int number = Integer.parseInt(nu.getNumber());
+                holder.cardView1.setOnClickListener(new View.OnClickListener() {
+                    @Override
+                    public void onClick(View view) {
+                        Message msg = new Message();
+                        Bundle b = new Bundle();
+                        b.putInt("number", number);
+                        msg.setData(b);
+                        handler.handleMessage(msg);
+                    }
+                });
+            }
             holder.card1UnitItem.setText(nu.getName());
             holder.card1NumberItem.setText(nu.getNumber());
         }
@@ -114,6 +136,20 @@ public class UnitAdapter extends ArrayAdapter {
             UnitNumber nu1 =  info.get(1);
             holder.card2UnitItem.setText(nu1.getName());
             holder.card2NumberItem.setText(nu1.getNumber());
+
+            if (!nu1.getNumber().equals("")) {
+                final int number = Integer.parseInt(nu1.getNumber());
+                holder.cardView2.setOnClickListener(new View.OnClickListener() {
+                    @Override
+                    public void onClick(View view) {
+                        Message msg = new Message();
+                        Bundle b = new Bundle();
+                        b.putInt("number", number);
+                        msg.setData(b);
+                        handler.handleMessage(msg);
+                    }
+                });
+            }
         }
 
         if (info.get(2) == null){
@@ -122,6 +158,20 @@ public class UnitAdapter extends ArrayAdapter {
             UnitNumber nu2 =  info.get(2);
             holder.card3UnitItem.setText(nu2.getName());
             holder.card3NumberItem.setText(nu2.getNumber());
+
+            if (!nu2.getNumber().equals("")) {
+                final int number = Integer.parseInt(nu2.getNumber());
+                holder.cardView3.setOnClickListener(new View.OnClickListener() {
+                    @Override
+                    public void onClick(View view) {
+                        Message msg = new Message();
+                        Bundle b = new Bundle();
+                        b.putInt("number", number);
+                        msg.setData(b);
+                        handler.handleMessage(msg);
+                    }
+                });
+            }
         }
 
         if (info.get(3) == null){
@@ -130,6 +180,20 @@ public class UnitAdapter extends ArrayAdapter {
             UnitNumber nu3 = info.get(3);
             holder.card4UnitItem.setText(nu3.getName());
             holder.card4NumberItem.setText(nu3.getNumber());
+
+            if (!nu3.getNumber().equals("")) {
+                final int number = Integer.parseInt(nu3.getNumber());
+                holder.cardView4.setOnClickListener(new View.OnClickListener() {
+                    @Override
+                    public void onClick(View view) {
+                        Message msg = new Message();
+                        Bundle b = new Bundle();
+                        b.putInt("number", number);
+                        msg.setData(b);
+                        handler.handleMessage(msg);
+                    }
+                });
+            }
         }
 
         if (info.get(4) == null){
@@ -138,6 +202,20 @@ public class UnitAdapter extends ArrayAdapter {
             UnitNumber nu4 = info.get(4);
             holder.card5UnitItem.setText(nu4.getName());
             holder.card5NumberItem.setText(nu4.getNumber());
+
+            if (!nu4.getNumber().equals("")) {
+                final int number = Integer.parseInt(nu4.getNumber());
+                holder.cardView5.setOnClickListener(new View.OnClickListener() {
+                    @Override
+                    public void onClick(View view) {
+                        Message msg = new Message();
+                        Bundle b = new Bundle();
+                        b.putInt("number", number);
+                        msg.setData(b);
+                        handler.handleMessage(msg);
+                    }
+                });
+            }
         }
 
         return view;

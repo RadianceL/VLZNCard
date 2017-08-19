@@ -3,6 +3,8 @@ package com.example.eddie.card.activity;
 import android.content.ContentValues;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
+import android.os.Handler;
+import android.os.Message;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
@@ -18,20 +20,16 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import com.example.eddie.card.MyAdapter.UnitAdapter;
-import com.example.eddie.card.MyAdapter.UnitList;
+import com.example.eddie.card.PoJo.UnitList;
 import com.example.eddie.card.MyDatabase.MyDatabaseHelper;
 import com.example.eddie.card.PoJo.Title;
 import com.example.eddie.card.PoJo.UnitNumber;
-import com.example.eddie.card.PoJo.card;
 import com.example.eddie.card.R;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Objects;
 
 import static com.example.eddie.card.R.id.show;
-import static com.example.eddie.card.R.id.unit;
-import static com.example.eddie.card.R.id.withText;
 
 public class sec extends AppCompatActivity {
     
@@ -48,6 +46,17 @@ public class sec extends AppCompatActivity {
 
     private ListView showUnit;
     private UnitAdapter unitAdapter;
+
+    private Handler handler = new Handler(){
+
+        @Override
+        public void handleMessage(Message msg) {
+            int number = msg.getData().getInt("number");
+            setBox(number);
+            tv.setText("机号为："+number+"号");
+        }
+
+    };
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -84,9 +93,22 @@ public class sec extends AppCompatActivity {
 
 
         List<Object> adapterList = initInfo();
-        unitAdapter = new UnitAdapter(this,R.layout.title_item,adapterList);
+        unitAdapter = new UnitAdapter(this,R.layout.title_item,adapterList,handler);
         showUnit.setAdapter(unitAdapter);
 
+        showUnit.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+            @Override
+            public void onItemClick(AdapterView<?> adapterView, View view, int i, long l) {
+
+                Log.i("ccc",view.getId()+"");
+
+                switch (view.getId()){
+                    case R.id.i_menu_one:
+                        Toast.makeText(sec.this, "fffff", Toast.LENGTH_SHORT).show();
+
+                }
+            }
+        });
 
         List<String> list = SearchCommunityInfo();
         ArrayAdapter adapter = new ArrayAdapter(this,R.layout.support_simple_spinner_dropdown_item,list);
@@ -128,8 +150,7 @@ public class sec extends AppCompatActivity {
         }
         int number = Integer.parseInt(s);
         if (number<=255){
-            startLocation(number);
-            unChocked();
+            setBox(number);
         }else {
             Toast.makeText(this, "输入数值超过界限", Toast.LENGTH_SHORT).show();
             edie_text.setText("");
@@ -337,19 +358,25 @@ public class sec extends AppCompatActivity {
         String unitString =  unit.getText().toString();
         String name = sp1.getSelectedItem().toString();
 
-        ContentValues values = new ContentValues();
-        values.put("name",name);
-        values.put("unit",unitString);
-        values.put("number",number);
+        if (number.equals("")) {
+            Toast.makeText(this, "机号不能为空!", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        if (unitString.equals("")){
+            Toast.makeText(this, "单元号不能为空!", Toast.LENGTH_SHORT).show();
+            return;
+        }
 
-        db.insert("unit",null,values);
+            ContentValues values = new ContentValues();
+            values.put("name", name);
+            values.put("unit", unitString);
+            values.put("number", number);
+            db.insert("unit", null, values);
+            values.clear();
 
-        values.clear();
-
-
-        unitAdapter.clear();
-        unitAdapter.addAll(initInfo());
-        unitAdapter.notifyDataSetChanged();
+            unitAdapter.clear();
+            unitAdapter.addAll(initInfo());
+            unitAdapter.notifyDataSetChanged();
     }
 
     private List<String> SearchCommunityInfo() {
@@ -430,5 +457,18 @@ public class sec extends AppCompatActivity {
         }
 
         return adapterList;
+    }
+
+    private void setBox(int number){
+        box1.setChecked(false);
+        box2.setChecked(false);
+        box3.setChecked(false);
+        box4.setChecked(false);
+        box5.setChecked(false);
+        box6.setChecked(false);
+        box7.setChecked(false);
+        box8.setChecked(false);
+        startLocation(number);
+        unChocked();
     }
 }
