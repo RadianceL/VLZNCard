@@ -1,6 +1,8 @@
 package com.example.eddie.card.activity;
 
 import android.content.ContentValues;
+import android.content.DialogInterface;
+import android.content.SharedPreferences;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.os.Handler;
@@ -14,6 +16,7 @@ import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.CheckBox;
 import android.widget.EditText;
+import android.widget.LinearLayout;
 import android.widget.ListView;
 import android.widget.Spinner;
 import android.widget.TextView;
@@ -27,33 +30,47 @@ import com.example.eddie.card.PoJo.UnitNumber;
 import com.example.eddie.card.R;
 
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
+import java.util.Objects;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
+import static com.example.eddie.card.R.id.input_name;
+import static com.example.eddie.card.R.id.line1;
 import static com.example.eddie.card.R.id.show;
 
 public class sec extends AppCompatActivity {
     
-    private EditText edie_text,unit;
+    private EditText edie_text,unit,input_name;
     private TextView tv;
     private CheckBox box1,box2,box3,box4,box5,box6,box7,box8;
-    private static final int[] numbers= {1,2,4,8,16,32,64,128};
-
 
     private MyDatabaseHelper myDatabaseHelper;
     private SQLiteDatabase db;
 
-    private Spinner sp1;
+    private Spinner sp1,sp2;
 
-    private ListView showUnit;
+    private ListView showUnit,listSavedCommunity;
     private UnitAdapter unitAdapter;
+    private ArrayAdapter adapter;
+
+    private LinearLayout up,down;
 
     private Handler handler = new Handler(){
 
         @Override
         public void handleMessage(Message msg) {
             int number = msg.getData().getInt("number");
-            setBox(number);
-            tv.setText("机号为："+number+"号");
+            if (number <= 255) {
+                setBox(number);
+                tv.setText("机号为：" + number + "号");
+            }else if (number == 256){
+                unitAdapter.clear();
+                unitAdapter.addAll(initInfo());
+                unitAdapter.notifyDataSetChanged();
+            }
         }
 
     };
@@ -66,15 +83,33 @@ public class sec extends AppCompatActivity {
         myDatabaseHelper = new MyDatabaseHelper(this,"CardInfo.db",null,1);
         db = myDatabaseHelper.getWritableDatabase();
 
-        ContentValues values = new ContentValues();
-        values.put("name","成龙花园");
-        db.insert("community",null,values);
+        initDatabses("成龙花园");
 
         init();
 
     }
 
+    private void initDatabses(String name) {
+        SharedPreferences sharedPreferences = this.getSharedPreferences("share", MODE_PRIVATE);
+        boolean isFirstRun = sharedPreferences.getBoolean("isFirstRun", true);
+        SharedPreferences.Editor editor = sharedPreferences.edit();
+        if (isFirstRun)
+        {
+            ContentValues values = new ContentValues();
+            values.put("name",name);
+            db.insert("community",null,values);
+            Log.d("debug", "第一次运行");
+            editor.putBoolean("isFirstRun", false);
+            editor.commit();
+        } else
+        {
+            Log.d("debug", "不是第一次运行");
+        }
+    }
+
+    @SuppressWarnings("unchecked")
     private void init() {
+
         edie_text = (EditText) findViewById(R.id.number);
         box1 = (CheckBox) findViewById(R.id.box1);
         box2 = (CheckBox) findViewById(R.id.box2);
@@ -90,11 +125,39 @@ public class sec extends AppCompatActivity {
         unit = (EditText) findViewById(R.id.unit);
         showUnit = (ListView) findViewById(R.id.showUnit);
         sp1 = (Spinner) findViewById(R.id.community);
+        sp2 = (Spinner) findViewById(R.id.change);
 
+        up = (LinearLayout) findViewById(R.id.up);
+        down = (LinearLayout) findViewById(R.id.down);
 
-        List<Object> adapterList = initInfo();
-        unitAdapter = new UnitAdapter(this,R.layout.title_item,adapterList,handler);
-        showUnit.setAdapter(unitAdapter);
+        final List<String> changeList = new ArrayList<>();
+        changeList.add("功能");changeList.add("小区管理");
+        ArrayAdapter changeAdapter = new ArrayAdapter(this,R.layout.support_simple_spinner_dropdown_item,changeList);
+        sp2.setAdapter(changeAdapter);
+
+        sp2.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+            @Override
+            public void onItemSelected(AdapterView<?> adapterView, View view, int i, long l) {
+                if (changeList.get(i).equals("功能")){
+                    up.setVisibility(View.VISIBLE);
+                    down.setVisibility(View.GONE);
+                }
+
+                if (changeList.get(i).equals("小区管理")){
+                    up.setVisibility(View.GONE);
+                    down.setVisibility(View.VISIBLE);
+                }
+            }
+
+            @Override
+            public void onNothingSelected(AdapterView<?> adapterView) {
+
+            }
+        });
+
+        listSavedCommunity = (ListView) findViewById(R.id.show_save_list);
+
+        input_name = (EditText) findViewById(R.id.input_name);
 
         showUnit.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
@@ -104,23 +167,90 @@ public class sec extends AppCompatActivity {
 
                 switch (view.getId()){
                     case R.id.i_menu_one:
+
                         Toast.makeText(sec.this, "fffff", Toast.LENGTH_SHORT).show();
 
                 }
             }
         });
 
-        List<String> list = SearchCommunityInfo();
-        ArrayAdapter adapter = new ArrayAdapter(this,R.layout.support_simple_spinner_dropdown_item,list);
+        final List<String> list = SearchCommunityInfo();
+        adapter = new ArrayAdapter(this,R.layout.support_simple_spinner_dropdown_item,list);
         sp1.setAdapter(adapter);
 
+
+        listSavedCommunity.setAdapter(adapter);
+
+        listSavedCommunity.setOnItemLongClickListener(new AdapterView.OnItemLongClickListener() {
+            @Override
+            public boolean onItemLongClick(AdapterView<?> adapterView, View view, int i, long l) {
+                myShowDialog(list.get(i));
+                return false;
+            }
+        });
+
+        List<Object> adapterList = initInfo();
+        unitAdapter = new UnitAdapter(this,R.layout.title_item,adapterList,handler);
+        showUnit.setAdapter(unitAdapter);
+
+        sp1.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+            @Override
+            public void onItemSelected(AdapterView<?> adapterView, View view, int i, long l) {
+                unitAdapter.clear();
+                unitAdapter.addAll(initInfo());
+                unitAdapter.notifyDataSetChanged();
+            }
+
+            @Override
+            public void onNothingSelected(AdapterView<?> adapterView) {
+
+            }
+        });
+
         TextView tv = (TextView) findViewById(R.id.content);
+        TextView tv1 = (TextView) findViewById(R.id.content1);
         tv.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
                 mShowDialog();
             }
         });
+        tv1.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                mShowDialog();
+            }
+        });
+    }
+
+    private void myShowDialog(final String location) {
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setTitle("警告！");
+        builder.setMessage("是否删除:"+location)
+
+                .setNegativeButton("否", new DialogInterface.OnClickListener() {
+
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+
+                    }
+                })
+
+                .setPositiveButton("是", new DialogInterface.OnClickListener() {
+
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+
+                        db.delete("community","name like ?",new String[]{location});
+
+                        adapter.clear();
+                        adapter.addAll(SearchCommunityInfo());
+                        adapter.notifyDataSetChanged();
+                    }
+                });
+
+        builder.show();
+
     }
 
     private void mShowDialog() {
@@ -352,8 +482,8 @@ public class sec extends AppCompatActivity {
         }
     }
 
+    @SuppressWarnings("unchecked")
     public void save(View view) {
-
         String number = edie_text.getText().toString();
         String unitString =  unit.getText().toString();
         String name = sp1.getSelectedItem().toString();
@@ -364,6 +494,11 @@ public class sec extends AppCompatActivity {
         }
         if (unitString.equals("")){
             Toast.makeText(this, "单元号不能为空!", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        if(Integer.parseInt(number)>255){
+            Toast.makeText(this, "数值不能超过255！", Toast.LENGTH_SHORT).show();
             return;
         }
 
@@ -379,6 +514,7 @@ public class sec extends AppCompatActivity {
             unitAdapter.notifyDataSetChanged();
     }
 
+    @SuppressWarnings("unchecked")
     private List<String> SearchCommunityInfo() {
 
         Cursor cursor = db.query("community",null,null,null,null,null,null);
@@ -386,51 +522,54 @@ public class sec extends AppCompatActivity {
         List<String> list = new ArrayList<>();
 
         if (cursor.moveToFirst()) {
-            String name = cursor.getString(cursor.getColumnIndex("name"));
-            list.add(name);
+            do {
+                String name = cursor.getString(cursor.getColumnIndex("name"));
+                list.add(name);
+            }while (cursor.moveToNext());
         }
+
+        cursor.close();
         return list;
     }
 
-
-    //未添加限定条件
-    private List<Object> initAdapterInfo(){
-
-        List<Object> list = new ArrayList<>();
-
-        Cursor cursor = db.query("community",null,null,null,null,null,null);
-
-        if (cursor.moveToFirst()) {
-            String name = cursor.getString(cursor.getColumnIndex("name"));
-            Title title = new Title(name);
-            list.add(title);
-        }
-        return list;
-    }
 
     private List<UnitNumber> getUnitInfo(){
         List<UnitNumber> list = new ArrayList<>();
-
-        Cursor cursor1 = db.query("unit",null,null,null,null,null,null);
+        Cursor cursor1 = db.query("unit",null,"name like ?",new String[]{sp1.getSelectedItem().toString()},null,null,null);
 
         if (cursor1.moveToFirst()){
             do {
+                int id = cursor1.getInt(cursor1.getColumnIndex("id"));
                 String unit = cursor1.getString(cursor1.getColumnIndex("unit"));
                 String num = cursor1.getString(cursor1.getColumnIndex("number"));
 
-                UnitNumber unitNumber = new UnitNumber(unit,num);
+                UnitNumber unitNumber = new UnitNumber(id,unit,num);
 
                 list.add(unitNumber);
-
             }while (cursor1.moveToNext());
         }
 
+        cursor1.close();
      return list;
 
     }
 
+    @SuppressWarnings("unchecked")
     private List<Object> initInfo(){
         List<UnitNumber> list1= getUnitInfo();
+
+        Collections.sort(list1, new Comparator() {
+                public int compare(Object a, Object b) {
+                    if(isDigit(((UnitNumber)a).getName().split("#")[0])&&isDigit(((UnitNumber)b).getName().split("#")[0])){
+                        int one = Integer.parseInt(((UnitNumber)a).getName().split("#")[0]);
+                        int two = Integer.parseInt(((UnitNumber)b).getName().split("#")[0]);
+                        return one- two ;
+                    }else {
+                        return -1;
+                    }
+                }
+        });
+
         List<Object> adapterList = initAdapterInfo();
         int x = 0;
         UnitList unitList;
@@ -447,7 +586,7 @@ public class sec extends AppCompatActivity {
                     x += 1;
                     list.add(o);
                 }else {
-                    o = new UnitNumber("","");
+                    o = new UnitNumber(-1,"","");
                     list.add(o);
                 }
             }
@@ -457,6 +596,14 @@ public class sec extends AppCompatActivity {
         }
 
         return adapterList;
+    }
+
+    private List<Object> initAdapterInfo() {
+        List<Object> list = new ArrayList<>();
+
+        list.add(new Title(sp1.getSelectedItem().toString()));
+
+        return list;
     }
 
     private void setBox(int number){
@@ -470,5 +617,28 @@ public class sec extends AppCompatActivity {
         box8.setChecked(false);
         startLocation(number);
         unChocked();
+    }
+
+    public void add(View view) {
+
+        ContentValues values = new ContentValues();
+        values.put("name",input_name.getText().toString());
+        db.insert("community",null,values);
+
+        adapter.clear();
+        adapter.addAll(SearchCommunityInfo());
+        adapter.notifyDataSetChanged();
+    }
+
+    @Override
+    protected void onDestroy() {
+        db.close();
+        super.onDestroy();
+    }
+
+    public boolean isDigit(String strNum) {
+        Pattern pattern = Pattern.compile("[0-9]{1,}");
+        Matcher matcher = pattern.matcher((CharSequence) strNum);
+        return matcher.matches();
     }
 }
